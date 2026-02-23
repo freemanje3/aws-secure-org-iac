@@ -39,3 +39,14 @@ resource "aws_organizations_organizational_unit" "sandbox" {
   name      = "Sandbox"
   parent_id = aws_organizations_organization.org.roots[0].id
 }
+
+resource "aws_organizations_account" "log_archive" {
+  name                       = "Log-Archive"
+  email                      = "freemanje3.iac+logs@gmail.com" # Be sure to use your plus-addressing
+  parent_id                  = aws_organizations_organizational_unit.security.id
+  iam_user_access_to_billing = "ALLOW"
+
+  lifecycle {
+    ignore_changes = [role_name]
+  }
+}
