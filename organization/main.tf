@@ -3,7 +3,7 @@
 # 1. Connect to your encrypted S3 Vault
 terraform {
   backend "s3" {
-    bucket         = "company-tf-state-079390753901" # Your exact bucket name
+    bucket         = "company-tf-state-079390753901"  # Your exact bucket name
     key            = "organization/terraform.tfstate" # Different key!
     region         = "us-east-1"
     dynamodb_table = "terraform-state-locks"
