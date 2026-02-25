@@ -182,7 +182,7 @@ data "aws_iam_policy_document" "central_log_key_policy" {
     }
   }
 
-  # 3. Allow CloudTrail to encrypt logs (Properly nested inside the data block now)
+  # 3. Allow CloudTrail to encrypt logs
   statement {
     sid    = "AllowCloudTrailToEncryptLogs"
     effect = "Allow"
@@ -192,7 +192,8 @@ data "aws_iam_policy_document" "central_log_key_policy" {
     }
     actions = [
       "kms:GenerateDataKey*",
-      "kms:Decrypt"
+      "kms:Decrypt",
+      "kms:DescribeKey" # <-- FIX 1: CloudTrail must be able to describe the key
     ]
     resources = ["*"]
 
@@ -486,8 +487,12 @@ data "aws_iam_policy_document" "org_cloudtrail_vault_policy" {
       type        = "Service"
       identifiers = ["cloudtrail.amazonaws.com"]
     }
-    actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.org_cloudtrail_vault.arn}/AWSLogs/${aws_organizations_organization.org.id}/*"]
+    actions = ["s3:PutObject"]
+    resources = [
+      # FIX 2: CloudTrail pre-flight checks require access to the Management Account prefix
+      "${aws_s3_bucket.org_cloudtrail_vault.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*",
+      "${aws_s3_bucket.org_cloudtrail_vault.arn}/AWSLogs/${aws_organizations_organization.org.id}/*"
+    ]
     condition {
       test     = "StringEquals"
       variable = "s3:x-amz-acl"
