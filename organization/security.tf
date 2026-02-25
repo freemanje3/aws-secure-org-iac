@@ -723,6 +723,6 @@ resource "aws_securityhub_organization_configuration" "org_config" {
 resource "aws_securityhub_standards_subscription" "nist_800_53_r5" { # <-- Added the 's' to "standards"
   provider      = aws.log_archive
   standards_arn = "arn:aws:securityhub:us-east-1::standards/nist-800-53/v/5.0.0"
-  
+
   depends_on = [aws_securityhub_organization_configuration.org_config]
 }
