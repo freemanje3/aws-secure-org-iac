@@ -688,7 +688,6 @@ resource "aws_cloudwatch_event_target" "log_archive_guardduty_target" {
   arn      = aws_cloudwatch_log_group.log_archive_guardduty_logs.arn
 }
 
-
 ################################################################################
 # 17. AWS Security Hub (Organization-Wide)
 ################################################################################
@@ -697,32 +696,29 @@ resource "aws_cloudwatch_event_target" "log_archive_guardduty_target" {
 resource "aws_securityhub_account" "management" {}
 
 # 2. Delegate Security Hub Administration to the Log Archive Account
+# (This automatically enables Security Hub in the Log Archive account!)
 resource "aws_securityhub_organization_admin_account" "org_admin" {
   depends_on       = [aws_securityhub_account.management]
   admin_account_id = aws_organizations_account.log_archive.id
 }
 
-# 3. Enable Security Hub in the Log Archive Account
-resource "aws_securityhub_account" "log_archive" {
-  provider   = aws.log_archive
-  depends_on = [aws_securityhub_organization_admin_account.org_admin]
-}
-
-# 4. Configure Organization-wide Auto-Enable (Managed from Log Archive)
+# 3. Configure Organization-wide Auto-Enable (Managed from Log Archive)
 resource "aws_securityhub_organization_configuration" "org_config" {
   provider    = aws.log_archive
   auto_enable = true
-
+  
   # Auto-enable specific standards for new accounts
-  auto_enable_standards = "NONE" # We will explicitly define NIST below
+  auto_enable_standards = "NONE"
 
-  depends_on = [aws_securityhub_account.log_archive]
+  # Updated dependency to wait for the admin delegation instead of the manual account creation
+  depends_on = [aws_securityhub_organization_admin_account.org_admin] 
 }
 
-# 5. Subscribe to NIST 800-53 Rev 5 Standard (In the delegated admin account)
-resource "aws_securityhub_standards_subscription" "nist_800_53_r5" { # <-- Added the 's' to "standards"
+# 4. Subscribe to NIST 800-53 Rev 5 Standard (In the delegated admin account)
+resource "aws_securityhub_standards_subscription" "nist_800_53_r5" {
   provider      = aws.log_archive
   standards_arn = "arn:aws:securityhub:us-east-1::standards/nist-800-53/v/5.0.0"
-
+  
   depends_on = [aws_securityhub_organization_configuration.org_config]
 }
+
