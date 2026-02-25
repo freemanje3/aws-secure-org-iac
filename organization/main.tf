@@ -297,7 +297,11 @@ resource "aws_config_configuration_recorder" "management" {
 resource "aws_config_delivery_channel" "management" {
   name           = "management-config-delivery"
   s3_bucket_name = aws_s3_bucket.org_conformance_pack_delivery.bucket
-  depends_on     = [aws_config_configuration_recorder.management]
+
+  depends_on = [
+    aws_config_configuration_recorder.management,
+    aws_s3_bucket_policy.conformance_pack_policy # <-- Forces Terraform to wait for permissions
+  ]
 }
 
 resource "aws_config_configuration_recorder_status" "management" {
@@ -336,7 +340,11 @@ resource "aws_config_delivery_channel" "log_archive" {
   provider       = aws.log_archive
   name           = "log-archive-config-delivery"
   s3_bucket_name = aws_s3_bucket.org_conformance_pack_delivery.bucket
-  depends_on     = [aws_config_configuration_recorder.log_archive]
+
+  depends_on = [
+    aws_config_configuration_recorder.log_archive,
+    aws_s3_bucket_policy.conformance_pack_policy # <-- Forces Terraform to wait for permissions
+  ]
 }
 
 resource "aws_config_configuration_recorder_status" "log_archive" {
