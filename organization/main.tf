@@ -300,7 +300,7 @@ resource "aws_config_delivery_channel" "management" {
 
   depends_on = [
     aws_config_configuration_recorder.management,
-    aws_s3_bucket_policy.conformance_pack_policy # <-- Forces Terraform to wait for permissions
+    aws_s3_bucket_policy.conformance_pack_policy
   ]
 }
 
@@ -310,7 +310,7 @@ resource "aws_config_configuration_recorder_status" "management" {
   depends_on = [aws_config_delivery_channel.management]
 }
 
-# --- Log Archive Account Recorder ---
+#--- Log Archive Account Recorder ---
 resource "aws_iam_role" "config_role_log_archive" {
   provider = aws.log_archive
   name     = "AWSConfigRoleLogArchive"
@@ -343,15 +343,8 @@ resource "aws_config_delivery_channel" "log_archive" {
 
   depends_on = [
     aws_config_configuration_recorder.log_archive,
-    aws_s3_bucket_policy.conformance_pack_policy # <-- Forces Terraform to wait for permissions
+    aws_s3_bucket_policy.conformance_pack_policy
   ]
-}
-
-resource "aws_config_configuration_recorder_status" "log_archive" {
-  provider   = aws.log_archive
-  name       = aws_config_configuration_recorder.log_archive.name
-  is_enabled = true
-  depends_on = [aws_config_delivery_channel.log_archive]
 }
 
 ################################################################################
@@ -420,7 +413,35 @@ resource "aws_s3_bucket_policy" "conformance_pack_policy" {
 data "aws_iam_policy_document" "conformance_pack_bucket_policy" {
   provider = aws.log_archive
 
-  # 1. Allow the Organization to check the bucket ACL
+  # 1. Allow AWS Config Service Principal (Required for Delivery Channel pre-flight checks)
+  statement {
+    sid    = "AllowConfigServiceAclCheck"
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["config.amazonaws.com"]
+    }
+    actions   = ["s3:GetBucketAcl", "s3:ListBucket"]
+    resources = [aws_s3_bucket.org_conformance_pack_delivery.arn]
+  }
+
+  statement {
+    sid    = "AllowConfigServiceWrite"
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["config.amazonaws.com"]
+    }
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.org_conformance_pack_delivery.arn}/*"]
+    condition {
+      test     = "StringEquals"
+      variable = "s3:x-amz-acl"
+      values   = ["bucket-owner-full-control"]
+    }
+  }
+
+  # 2. Allow Cross-Account Organization Access (Required for Conformance Packs)
   statement {
     sid    = "AllowOrganizationAclCheck"
     effect = "Allow"
@@ -431,7 +452,6 @@ data "aws_iam_policy_document" "conformance_pack_bucket_policy" {
     actions   = ["s3:GetBucketAcl"]
     resources = [aws_s3_bucket.org_conformance_pack_delivery.arn]
 
-    # Strictly limit access to your AWS Organization
     condition {
       test     = "StringEquals"
       variable = "aws:PrincipalOrgID"
@@ -439,7 +459,6 @@ data "aws_iam_policy_document" "conformance_pack_bucket_policy" {
     }
   }
 
-  # 2. Allow the Organization to write compliance reports
   statement {
     sid    = "AllowOrganizationWriteAccess"
     effect = "Allow"
@@ -447,8 +466,7 @@ data "aws_iam_policy_document" "conformance_pack_bucket_policy" {
       type        = "AWS"
       identifiers = ["*"]
     }
-    actions = ["s3:PutObject"]
-    # AWS Config Conformance Packs write directly to the bucket, not necessarily just the AWSLogs prefix
+    actions   = ["s3:PutObject"]
     resources = ["${aws_s3_bucket.org_conformance_pack_delivery.arn}/*"]
 
     condition {
@@ -457,7 +475,6 @@ data "aws_iam_policy_document" "conformance_pack_bucket_policy" {
       values   = ["bucket-owner-full-control"]
     }
 
-    # Strictly limit access to your AWS Organization
     condition {
       test     = "StringEquals"
       variable = "aws:PrincipalOrgID"
@@ -465,8 +482,7 @@ data "aws_iam_policy_document" "conformance_pack_bucket_policy" {
     }
   }
 }
-
-################################################################################
+############################################
 # 10. General Storage CMK (Log Archive Account)
 ################################################################################
 
