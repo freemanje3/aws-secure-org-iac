@@ -175,13 +175,13 @@ data "aws_iam_policy_document" "central_log_key_policy" {
     condition {
       test     = "ArnLike"
       variable = "kms:EncryptionContext:aws:logs:arn"
-      values   = [
+      values = [
         "arn:aws:logs:us-east-1:${data.aws_caller_identity.current.account_id}:*",
         "arn:aws:logs:us-east-1:${aws_organizations_account.log_archive.id}:*"
       ]
     }
   }
-  
+
   # 3. Allow CloudTrail to encrypt logs (Properly nested inside the data block now)
   statement {
     sid    = "AllowCloudTrailToEncryptLogs"
