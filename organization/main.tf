@@ -48,7 +48,7 @@ data "aws_caller_identity" "current" {}
 
 resource "aws_organizations_organization" "org" {
   feature_set = "ALL"
-  
+
   enabled_policy_types = [
     "SERVICE_CONTROL_POLICY",
     "TAG_POLICY"
@@ -105,10 +105,10 @@ resource "aws_s3_account_public_access_block" "log_archive" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
-  
+
   # Add this right before the closing brace (Approx line 89)
   # Forces Terraform to wait for the IAM role before trying to connect
-  depends_on = [time_sleep.wait_for_account_iam] 
+  depends_on = [time_sleep.wait_for_account_iam]
 }
 
 resource "aws_ebs_encryption_by_default" "log_archive" {
@@ -190,7 +190,7 @@ data "aws_iam_policy_document" "central_log_key_policy" {
       "kms:Decrypt"
     ]
     resources = ["*"]
-    
+
     condition {
       test     = "StringLike"
       variable = "kms:EncryptionContext:aws:cloudtrail:arn"
@@ -216,13 +216,13 @@ resource "aws_organizations_policy_attachment" "secure_root_attachment" {
 }
 
 data "aws_iam_policy_document" "scp_protect_logging" {
-  
+
   statement {
     sid       = "PreventLogDeletion"
     effect    = "Deny"
     actions   = ["logs:DeleteLogGroup"]
     resources = ["*"]
-    
+
     condition {
       test     = "StringNotLike"
       variable = "aws:PrincipalArn"
@@ -239,7 +239,7 @@ data "aws_iam_policy_document" "scp_protect_logging" {
       "kms:PutKeyPolicy"
     ]
     resources = [aws_kms_key.central_log_key.arn]
-    
+
     condition {
       test     = "StringNotLike"
       variable = "aws:PrincipalArn"
@@ -252,14 +252,14 @@ data "aws_iam_policy_document" "scp_protect_logging" {
     effect    = "Deny"
     actions   = ["s3:*"]
     resources = ["*"]
-    
+
     condition {
       test     = "Bool"
       variable = "aws:SecureTransport"
       values   = ["false"]
     }
   }
-} 
+}
 
 ################################################################################
 # 8. Detective Guardrails (AWS Config Organization Rules)
@@ -278,10 +278,10 @@ resource "aws_config_organization_managed_rule" "central_log_key_check" {
 }
 
 resource "aws_config_organization_conformance_pack" "nist_800_53" {
-  name             = "NIST-800-53-Rev5-Operational-Best-Practices"
-  template_body    = file("${path.module}/nist-800-53-rev-5.yaml")
+  name               = "NIST-800-53-Rev5-Operational-Best-Practices"
+  template_body      = file("${path.module}/nist-800-53-rev-5.yaml")
   delivery_s3_bucket = aws_s3_bucket.org_conformance_pack_delivery.bucket
-  depends_on = [aws_organizations_organization.org]
+  depends_on         = [aws_organizations_organization.org]
 }
 
 ################################################################################
@@ -289,12 +289,12 @@ resource "aws_config_organization_conformance_pack" "nist_800_53" {
 ################################################################################
 
 resource "aws_s3_bucket" "org_conformance_pack_delivery" {
-  provider      = aws.log_archive
-  
+  provider = aws.log_archive
+
   # AWS strictly requires the 'awsconfigconforms' prefix for this specific bucket
-  bucket        = "awsconfigconforms-org-delivery-${aws_organizations_account.log_archive.id}"
-  
-  force_destroy = false 
+  bucket = "awsconfigconforms-org-delivery-${aws_organizations_account.log_archive.id}"
+
+  force_destroy = false
 }
 
 resource "aws_s3_bucket_public_access_block" "conformance_pack_bpa" {
@@ -335,14 +335,14 @@ data "aws_iam_policy_document" "conformance_pack_bucket_policy" {
     }
     actions   = ["s3:PutObject"]
     resources = ["${aws_s3_bucket.org_conformance_pack_delivery.arn}/AWSLogs/*"]
-    
+
     condition {
       test     = "StringEquals"
       variable = "s3:x-amz-acl"
       values   = ["bucket-owner-full-control"]
     } # Properly closed condition
-  } # Properly closed statement
-} # Properly closed data block
+  }   # Properly closed statement
+}     # Properly closed data block
 
 resource "aws_s3_bucket_versioning" "conformance_pack" {
   provider = aws.log_archive
@@ -388,7 +388,7 @@ data "aws_iam_policy_document" "log_archive_storage_key_policy" {
 resource "aws_ebs_default_kms_key" "log_archive_default" {
   provider   = aws.log_archive
   key_arn    = aws_kms_key.log_archive_storage_key.arn
-  depends_on = [aws_ebs_encryption_by_default.log_archive] 
+  depends_on = [aws_ebs_encryption_by_default.log_archive]
 }
 
 ################################################################################
@@ -397,7 +397,7 @@ resource "aws_ebs_default_kms_key" "log_archive_default" {
 
 resource "aws_vpc" "log_archive_vpc" {
   provider             = aws.log_archive
-  cidr_block           = "10.1.0.0/16" 
+  cidr_block           = "10.1.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
 }
@@ -534,16 +534,16 @@ resource "aws_iam_role_policy" "cloudtrail_to_cloudwatch_policy" {
 }
 
 resource "aws_cloudtrail" "org_trail" {
-  name                          = "organization-master-trail"
-  s3_bucket_name                = aws_s3_bucket.org_cloudtrail_vault.id
-  
-  is_organization_trail         = true
-  is_multi_region_trail         = true
-  enable_log_file_validation    = true
-  kms_key_id                    = aws_kms_key.central_log_key.arn
+  name           = "organization-master-trail"
+  s3_bucket_name = aws_s3_bucket.org_cloudtrail_vault.id
 
-  cloud_watch_logs_group_arn    = "${aws_cloudwatch_log_group.org_cloudtrail_logs.arn}:*"
-  cloud_watch_logs_role_arn     = aws_iam_role.cloudtrail_to_cloudwatch.arn
+  is_organization_trail      = true
+  is_multi_region_trail      = true
+  enable_log_file_validation = true
+  kms_key_id                 = aws_kms_key.central_log_key.arn
+
+  cloud_watch_logs_group_arn = "${aws_cloudwatch_log_group.org_cloudtrail_logs.arn}:*"
+  cloud_watch_logs_role_arn  = aws_iam_role.cloudtrail_to_cloudwatch.arn
 
   depends_on = [
     aws_s3_bucket_policy.org_cloudtrail_policy,
@@ -571,8 +571,8 @@ resource "aws_iam_role" "management_flow_logs_role" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
       Principal = { Service = "vpc-flow-logs.amazonaws.com" }
     }]
   })
@@ -655,8 +655,8 @@ resource "aws_iam_role" "log_archive_flow_logs_role" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
       Principal = { Service = "vpc-flow-logs.amazonaws.com" }
     }]
   })
