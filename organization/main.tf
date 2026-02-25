@@ -267,18 +267,6 @@ data "aws_iam_policy_document" "scp_protect_logging" {
   }
 }
 
-resource "aws_config_organization_conformance_pack" "nist_800_53" {
-  name               = "NIST-800-53-Rev5-Operational-Best-Practices"
-  template_body      = file("${path.module}/nist-800-53-rev-5.yaml")
-  delivery_s3_bucket = aws_s3_bucket.org_conformance_pack_delivery.bucket
-
-  # Ensure the policy is attached before AWS Config tests its access
-  depends_on = [
-    aws_organizations_organization.org,
-    aws_s3_bucket_policy.conformance_pack_policy # <-- Add this line
-  ]
-}
-
 ################################################################################
 # 7.5 AWS Config Recorders (Prerequisite for Organization Rules)
 ################################################################################
