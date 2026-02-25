@@ -347,6 +347,13 @@ resource "aws_config_delivery_channel" "log_archive" {
   ]
 }
 
+resource "aws_config_configuration_recorder_status" "log_archive" {
+  provider   = aws.log_archive
+  name       = aws_config_configuration_recorder.log_archive.name
+  is_enabled = true
+  depends_on = [aws_config_delivery_channel.log_archive]
+}
+
 ################################################################################
 # 8. Detective Guardrails (AWS Config Organization Rules)
 ################################################################################
