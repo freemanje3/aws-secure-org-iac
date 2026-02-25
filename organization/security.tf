@@ -720,9 +720,9 @@ resource "aws_securityhub_organization_configuration" "org_config" {
 }
 
 # 5. Subscribe to NIST 800-53 Rev 5 Standard (In the delegated admin account)
-resource "aws_securityhub_standard_subscription" "nist_800_53_r5" {
+resource "aws_securityhub_standards_subscription" "nist_800_53_r5" { # <-- Added the 's' to "standards"
   provider      = aws.log_archive
   standards_arn = "arn:aws:securityhub:us-east-1::standards/nist-800-53/v/5.0.0"
-
+  
   depends_on = [aws_securityhub_organization_configuration.org_config]
 }
