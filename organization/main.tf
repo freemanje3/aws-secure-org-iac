@@ -39,6 +39,16 @@ provider "aws" {
   }
 }
 
+# Aliased Provider: Security Tooling Account
+provider "aws" {
+  alias  = "security_tooling"
+  region = "us-east-1"
+
+  assume_role {
+    role_arn = "arn:aws:iam::${aws_organizations_account.security_tooling.id}:role/OrganizationAccountAccessRole"
+  }
+}
+
 # Required to dynamically fetch the Management Account ID for policies
 data "aws_caller_identity" "current" {}
 
@@ -57,7 +67,8 @@ resource "aws_organizations_organization" "org" {
   aws_service_access_principals = [
     "sso.amazonaws.com",
     "cloudtrail.amazonaws.com",
-    "config.amazonaws.com"
+    "config.amazonaws.com",
+    "securityhub.amazonaws.com"
   ]
 }
 
@@ -74,20 +85,4 @@ resource "aws_organizations_organizational_unit" "infrastructure" {
 resource "aws_organizations_organizational_unit" "sandbox" {
   name      = "Sandbox"
   parent_id = aws_organizations_organization.org.roots[0].id
-}
-
-resource "aws_organizations_organization" "org" {
-  feature_set = "ALL"
-
-  enabled_policy_types = [
-    "SERVICE_CONTROL_POLICY",
-    "TAG_POLICY"
-  ]
-
-  aws_service_access_principals = [
-    "sso.amazonaws.com",
-    "cloudtrail.amazonaws.com",
-    "config.amazonaws.com",
-    "securityhub.amazonaws.com" # <-- Add this line
-  ]
 }
