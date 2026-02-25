@@ -75,3 +75,19 @@ resource "aws_organizations_organizational_unit" "sandbox" {
   name      = "Sandbox"
   parent_id = aws_organizations_organization.org.roots[0].id
 }
+
+resource "aws_organizations_organization" "org" {
+  feature_set = "ALL"
+
+  enabled_policy_types = [
+    "SERVICE_CONTROL_POLICY",
+    "TAG_POLICY"
+  ]
+
+  aws_service_access_principals = [
+    "sso.amazonaws.com",
+    "cloudtrail.amazonaws.com",
+    "config.amazonaws.com",
+    "securityhub.amazonaws.com" # <-- Add this line
+  ]
+}
