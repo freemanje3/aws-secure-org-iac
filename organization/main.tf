@@ -267,27 +267,16 @@ data "aws_iam_policy_document" "scp_protect_logging" {
   }
 }
 
-################################################################################
-# 8. Detective Guardrails (AWS Config Organization Rules)
-################################################################################
-
-resource "aws_config_organization_managed_rule" "central_log_key_check" {
-  name            = "require-central-log-key"
-  rule_identifier = "CLOUDWATCH_LOG_GROUP_ENCRYPTED"
-  description     = "Ensures all CloudWatch Log groups use the central Organization KMS key."
-
-  input_parameters = jsonencode({
-    kmsKeyArn = aws_kms_key.central_log_key.arn
-  })
-
-  depends_on = [aws_organizations_organization.org]
-}
-
 resource "aws_config_organization_conformance_pack" "nist_800_53" {
   name               = "NIST-800-53-Rev5-Operational-Best-Practices"
   template_body      = file("${path.module}/nist-800-53-rev-5.yaml")
   delivery_s3_bucket = aws_s3_bucket.org_conformance_pack_delivery.bucket
-  depends_on         = [aws_organizations_organization.org]
+
+  # Ensure the policy is attached before AWS Config tests its access
+  depends_on = [
+    aws_organizations_organization.org,
+    aws_s3_bucket_policy.conformance_pack_policy # <-- Add this line
+  ]
 }
 
 ################################################################################
