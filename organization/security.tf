@@ -706,19 +706,19 @@ resource "aws_securityhub_organization_admin_account" "org_admin" {
 resource "aws_securityhub_organization_configuration" "org_config" {
   provider    = aws.log_archive
   auto_enable = true
-  
+
   # Auto-enable specific standards for new accounts
   auto_enable_standards = "NONE"
 
   # Updated dependency to wait for the admin delegation instead of the manual account creation
-  depends_on = [aws_securityhub_organization_admin_account.org_admin] 
+  depends_on = [aws_securityhub_organization_admin_account.org_admin]
 }
 
 # 4. Subscribe to NIST 800-53 Rev 5 Standard (In the delegated admin account)
 resource "aws_securityhub_standards_subscription" "nist_800_53_r5" {
   provider      = aws.log_archive
   standards_arn = "arn:aws:securityhub:us-east-1::standards/nist-800-53/v/5.0.0"
-  
+
   depends_on = [aws_securityhub_organization_configuration.org_config]
 }
 
