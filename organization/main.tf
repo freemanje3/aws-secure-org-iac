@@ -280,6 +280,106 @@ resource "aws_config_organization_conformance_pack" "nist_800_53" {
 }
 
 ################################################################################
+# 7.5 AWS Config Recorders (Prerequisite for Organization Rules)
+################################################################################
+
+# --- Management Account Recorder ---
+resource "aws_iam_role" "config_role_management" {
+  name = "AWSConfigRoleManagement"
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [{ Action = "sts:AssumeRole", Effect = "Allow", Principal = { Service = "config.amazonaws.com" } }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "config_policy_attach_management" {
+  role       = aws_iam_role.config_role_management.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWS_ConfigRole"
+}
+
+resource "aws_config_configuration_recorder" "management" {
+  name     = "management-config-recorder"
+  role_arn = aws_iam_role.config_role_management.arn
+  recording_group {
+    all_supported                 = true
+    include_global_resource_types = true
+  }
+}
+
+resource "aws_config_delivery_channel" "management" {
+  name           = "management-config-delivery"
+  s3_bucket_name = aws_s3_bucket.org_conformance_pack_delivery.bucket
+  depends_on     = [aws_config_configuration_recorder.management]
+}
+
+resource "aws_config_configuration_recorder_status" "management" {
+  name       = aws_config_configuration_recorder.management.name
+  is_enabled = true
+  depends_on = [aws_config_delivery_channel.management]
+}
+
+# --- Log Archive Account Recorder ---
+resource "aws_iam_role" "config_role_log_archive" {
+  provider = aws.log_archive
+  name     = "AWSConfigRoleLogArchive"
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [{ Action = "sts:AssumeRole", Effect = "Allow", Principal = { Service = "config.amazonaws.com" } }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "config_policy_attach_log_archive" {
+  provider   = aws.log_archive
+  role       = aws_iam_role.config_role_log_archive.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWS_ConfigRole"
+}
+
+resource "aws_config_configuration_recorder" "log_archive" {
+  provider = aws.log_archive
+  name     = "log-archive-config-recorder"
+  role_arn = aws_iam_role.config_role_log_archive.arn
+  recording_group {
+    all_supported                 = true
+    include_global_resource_types = true
+  }
+}
+
+resource "aws_config_delivery_channel" "log_archive" {
+  provider       = aws.log_archive
+  name           = "log-archive-config-delivery"
+  s3_bucket_name = aws_s3_bucket.org_conformance_pack_delivery.bucket
+  depends_on     = [aws_config_configuration_recorder.log_archive]
+}
+
+resource "aws_config_configuration_recorder_status" "log_archive" {
+  provider   = aws.log_archive
+  name       = aws_config_configuration_recorder.log_archive.name
+  is_enabled = true
+  depends_on = [aws_config_delivery_channel.log_archive]
+}
+
+resource "aws_config_organization_managed_rule" "central_log_key_check" {
+  # ... (Keep your existing arguments) ...
+
+  depends_on = [
+    aws_organizations_organization.org,
+    aws_config_configuration_recorder_status.management, # <-- Add this
+    aws_config_configuration_recorder_status.log_archive # <-- Add this
+  ]
+}
+
+resource "aws_config_organization_conformance_pack" "nist_800_53" {
+  # ... (Keep your existing arguments) ...
+
+  depends_on = [
+    aws_organizations_organization.org,
+    aws_s3_bucket_policy.conformance_pack_policy,
+    aws_config_configuration_recorder_status.management, # <-- Add this
+    aws_config_configuration_recorder_status.log_archive # <-- Add this
+  ]
+}
+
+################################################################################
 # 8. Detective Guardrails (AWS Config Organization Rules)
 ################################################################################
 
