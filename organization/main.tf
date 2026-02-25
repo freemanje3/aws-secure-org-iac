@@ -358,27 +358,6 @@ resource "aws_config_configuration_recorder_status" "log_archive" {
   depends_on = [aws_config_delivery_channel.log_archive]
 }
 
-resource "aws_config_organization_managed_rule" "central_log_key_check" {
-  # ... (Keep your existing arguments) ...
-
-  depends_on = [
-    aws_organizations_organization.org,
-    aws_config_configuration_recorder_status.management, # <-- Add this
-    aws_config_configuration_recorder_status.log_archive # <-- Add this
-  ]
-}
-
-resource "aws_config_organization_conformance_pack" "nist_800_53" {
-  # ... (Keep your existing arguments) ...
-
-  depends_on = [
-    aws_organizations_organization.org,
-    aws_s3_bucket_policy.conformance_pack_policy,
-    aws_config_configuration_recorder_status.management, # <-- Add this
-    aws_config_configuration_recorder_status.log_archive # <-- Add this
-  ]
-}
-
 ################################################################################
 # 8. Detective Guardrails (AWS Config Organization Rules)
 ################################################################################
@@ -388,12 +367,30 @@ resource "aws_config_organization_managed_rule" "central_log_key_check" {
   rule_identifier = "CLOUDWATCH_LOG_GROUP_ENCRYPTED"
   description     = "Ensures all CloudWatch Log groups use the central Organization KMS key."
 
-  # This contains the updated KmsKeyId parameter we fixed earlier!
   input_parameters = jsonencode({
     KmsKeyId = aws_kms_key.central_log_key.arn
   })
 
-  depends_on = [aws_organizations_organization.org]
+  # Waits for recorders to exist before deploying the rule
+  depends_on = [
+    aws_organizations_organization.org,
+    aws_config_configuration_recorder_status.management,
+    aws_config_configuration_recorder_status.log_archive
+  ]
+}
+
+resource "aws_config_organization_conformance_pack" "nist_800_53" {
+  name               = "NIST-800-53-Rev5-Operational-Best-Practices"
+  template_body      = file("${path.module}/nist-800-53-rev-5.yaml")
+  delivery_s3_bucket = aws_s3_bucket.org_conformance_pack_delivery.bucket
+
+  # Waits for bucket policy and recorders to exist before deploying the pack
+  depends_on = [
+    aws_organizations_organization.org,
+    aws_s3_bucket_policy.conformance_pack_policy,
+    aws_config_configuration_recorder_status.management,
+    aws_config_configuration_recorder_status.log_archive
+  ]
 }
 
 ################################################################################
