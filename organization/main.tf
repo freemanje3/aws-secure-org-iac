@@ -170,13 +170,18 @@ data "aws_iam_policy_document" "central_log_key_policy" {
     ]
     resources = ["*"]
 
+    # FIX: AWS Services don't have an Org ID. We use ArnLike with the EncryptionContext 
+    # to restrict the key usage to just your Management and Log Archive accounts.
     condition {
-      test     = "StringEquals"
-      variable = "aws:PrincipalOrgID"
-      values   = [aws_organizations_organization.org.id]
+      test     = "ArnLike"
+      variable = "kms:EncryptionContext:aws:logs:arn"
+      values   = [
+        "arn:aws:logs:us-east-1:${data.aws_caller_identity.current.account_id}:*",
+        "arn:aws:logs:us-east-1:${aws_organizations_account.log_archive.id}:*"
+      ]
     }
   }
-
+  
   # 3. Allow CloudTrail to encrypt logs (Properly nested inside the data block now)
   statement {
     sid    = "AllowCloudTrailToEncryptLogs"
