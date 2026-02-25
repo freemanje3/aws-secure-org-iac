@@ -280,6 +280,23 @@ resource "aws_config_organization_conformance_pack" "nist_800_53" {
 }
 
 ################################################################################
+# 8. Detective Guardrails (AWS Config Organization Rules)
+################################################################################
+
+resource "aws_config_organization_managed_rule" "central_log_key_check" {
+  name            = "require-central-log-key"
+  rule_identifier = "CLOUDWATCH_LOG_GROUP_ENCRYPTED"
+  description     = "Ensures all CloudWatch Log groups use the central Organization KMS key."
+
+  # This contains the updated KmsKeyId parameter we fixed earlier!
+  input_parameters = jsonencode({
+    KmsKeyId = aws_kms_key.central_log_key.arn
+  })
+
+  depends_on = [aws_organizations_organization.org]
+}
+
+################################################################################
 # 9. Conformance Pack Delivery Bucket (Log Archive Account)
 ################################################################################
 
@@ -310,40 +327,49 @@ resource "aws_s3_bucket_policy" "conformance_pack_policy" {
 data "aws_iam_policy_document" "conformance_pack_bucket_policy" {
   provider = aws.log_archive
 
+  # 1. Allow the Organization to check the bucket ACL
   statement {
-    sid    = "AllowConfigAclCheck"
+    sid    = "AllowOrganizationAclCheck"
     effect = "Allow"
     principals {
-      type        = "Service"
-      identifiers = ["config.amazonaws.com"]
+      type        = "AWS"
+      identifiers = ["*"]
     }
     actions   = ["s3:GetBucketAcl"]
     resources = [aws_s3_bucket.org_conformance_pack_delivery.arn]
+
+    # Strictly limit access to your AWS Organization
+    condition {
+      test     = "StringEquals"
+      variable = "aws:PrincipalOrgID"
+      values   = [aws_organizations_organization.org.id]
+    }
   }
 
+  # 2. Allow the Organization to write compliance reports
   statement {
-    sid    = "AllowConfigWriteAccess"
+    sid    = "AllowOrganizationWriteAccess"
     effect = "Allow"
     principals {
-      type        = "Service"
-      identifiers = ["config.amazonaws.com"]
+      type        = "AWS"
+      identifiers = ["*"]
     }
-    actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.org_conformance_pack_delivery.arn}/AWSLogs/*"]
+    actions = ["s3:PutObject"]
+    # AWS Config Conformance Packs write directly to the bucket, not necessarily just the AWSLogs prefix
+    resources = ["${aws_s3_bucket.org_conformance_pack_delivery.arn}/*"]
 
     condition {
       test     = "StringEquals"
       variable = "s3:x-amz-acl"
       values   = ["bucket-owner-full-control"]
-    } # Properly closed condition
-  }   # Properly closed statement
-}     # Properly closed data block
+    }
 
-resource "aws_s3_bucket_versioning" "conformance_pack" {
-  provider = aws.log_archive
-  bucket   = aws_s3_bucket.org_conformance_pack_delivery.id
-  versioning_configuration {
-    status = "Enabled"
+    # Strictly limit access to your AWS Organization
+    condition {
+      test     = "StringEquals"
+      variable = "aws:PrincipalOrgID"
+      values   = [aws_organizations_organization.org.id]
+    }
   }
 }
 
