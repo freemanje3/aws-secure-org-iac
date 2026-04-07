@@ -1,15 +1,14 @@
 #!/bin/bash
 echo "=== Pre-Apply Fixes Pipeline ==="
 
-# 1. Manually resolve S3 BPA deletion loops
-echo "Cleaning up S3 BPA loops..."
-SECURITY_TOOLING_ID=$(aws organizations list-accounts --query "Accounts[?Name=='Security-Tooling'].Id" --output text)
-if [ -n "$SECURITY_TOOLING_ID" ]; then
-    aws s3control delete-public-access-block --account-id $SECURITY_TOOLING_ID || true
-fi
-# 2. KMS Policy Pipeline Race Condition Fix
-echo "Targeting KMS Policy explicitly before main execution..."
-terraform apply -target=aws_kms_key.central_log_key -auto-approve || true
-echo "Sleeping 20s for KMS replication..."
-sleep 20
-echo "=== Pre-Apply Fixes Core Loops Finished ==="
+echo "--- CRITICAL DEBUG START ---"
+GD_ADMIN=$(aws guardduty list-organization-admin-accounts --query "AdminAccounts[0].AdminAccountId" --output text || echo "FAILED_GD")
+SH_ADMIN=$(aws securityhub list-organization-admin-accounts --query "AdminAccounts[0].AccountId" --output text || echo "FAILED_SH")
+
+echo "=========================================================="
+echo "FATAL DIAGNOSTIC: GUARDDUTY ACTIVE ADMIN: $GD_ADMIN"
+echo "FATAL DIAGNOSTIC: SECURITYHUB ACTIVE ADMIN: $SH_ADMIN"
+echo "=========================================================="
+
+echo "Intentionally exiting pipeline with Code 1 to expose these logs to you. Please copy the logs and paste them in Chat!"
+exit 1
