@@ -33,6 +33,8 @@ resource "aws_s3_account_public_access_block" "log_archive" {
 resource "aws_ebs_encryption_by_default" "log_archive" {
   provider = aws.log_archive
   enabled  = true
+
+  depends_on = [time_sleep.wait_for_account_iam]
 }
 
 resource "aws_organizations_account" "security_tooling" {
@@ -64,4 +66,6 @@ resource "aws_s3_account_public_access_block" "security_tooling" {
 resource "aws_ebs_encryption_by_default" "security_tooling" {
   provider = aws.security_tooling
   enabled  = true
+
+  depends_on = [time_sleep.wait_for_security_account_iam]
 }
