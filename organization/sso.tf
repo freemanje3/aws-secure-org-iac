@@ -18,7 +18,7 @@ data "aws_identitystore_user" "admin_user" {
 }
 
 resource "aws_ssoadmin_permission_set" "admin_access" {
-  name             = "LogArchiveAdministrator"
+  name             = "OrganizationAdministrator"
   description      = "Full administrative access to manage centralized logging and security tools"
   instance_arn     = tolist(data.aws_ssoadmin_instances.main.arns)[0]
   session_duration = "PT8H"
