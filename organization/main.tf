@@ -68,7 +68,8 @@ resource "aws_organizations_organization" "org" {
     "sso.amazonaws.com",
     "cloudtrail.amazonaws.com",
     "config.amazonaws.com",
-    "securityhub.amazonaws.com"
+    "securityhub.amazonaws.com",
+    "guardduty.amazonaws.com"
   ]
 }
 
