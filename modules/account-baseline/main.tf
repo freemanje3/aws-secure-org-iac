@@ -207,3 +207,14 @@ resource "aws_cloudwatch_event_target" "guardduty_target" {
   rule = aws_cloudwatch_event_rule.guardduty_rule.name
   arn  = aws_cloudwatch_log_group.guardduty_logs.arn
 }
+
+# -------------------------------------------------------------
+# 6. Security Hub & Compliance Standards
+# -------------------------------------------------------------
+
+resource "aws_securityhub_account" "securityhub" {}
+
+resource "aws_securityhub_standards_subscription" "nist_800_53_r5" {
+  depends_on    = [aws_securityhub_account.securityhub]
+  standards_arn = "arn:aws:securityhub:us-east-1::standards/nist-800-53/v/5.0.0"
+}

@@ -424,10 +424,3 @@ resource "aws_securityhub_organization_configuration" "org_config" {
 
   depends_on = [aws_securityhub_organization_admin_account.org_admin]
 }
-
-resource "aws_securityhub_standards_subscription" "nist_800_53_r5" {
-  provider      = aws.security_tooling
-  standards_arn = "arn:aws:securityhub:us-east-1::standards/nist-800-53/v/5.0.0"
-
-  depends_on = [aws_securityhub_organization_configuration.org_config]
-}
