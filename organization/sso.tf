@@ -38,3 +38,12 @@ resource "aws_ssoadmin_account_assignment" "log_archive_admin" {
   principal_type     = "USER"
   permission_set_arn = aws_ssoadmin_permission_set.admin_access.arn
 }
+
+resource "aws_ssoadmin_account_assignment" "security_tooling_admin" {
+  instance_arn       = tolist(data.aws_ssoadmin_instances.main.arns)[0]
+  target_id          = aws_organizations_account.security_tooling.id
+  target_type        = "AWS_ACCOUNT"
+  principal_id       = data.aws_identitystore_user.admin_user.user_id
+  principal_type     = "USER"
+  permission_set_arn = aws_ssoadmin_permission_set.admin_access.arn
+}
