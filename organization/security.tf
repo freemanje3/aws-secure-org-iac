@@ -222,6 +222,16 @@ resource "aws_s3_bucket" "org_conformance_pack_delivery" {
   force_destroy = false
 }
 
+resource "aws_s3_bucket_server_side_encryption_configuration" "org_conformance_pack_encryption" {
+  provider = aws.log_archive
+  bucket   = aws_s3_bucket.org_conformance_pack_delivery.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
 resource "aws_s3_bucket_public_access_block" "conformance_pack_bpa" {
   provider                = aws.log_archive
   bucket                  = aws_s3_bucket.org_conformance_pack_delivery.id
@@ -400,6 +410,17 @@ resource "aws_s3_bucket" "org_cloudtrail_vault" {
   provider      = aws.log_archive
   bucket        = "org-cloudtrail-vault-${aws_organizations_account.log_archive.id}"
   force_destroy = false
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "org_cloudtrail_vault_encryption" {
+  provider = aws.log_archive
+  bucket   = aws_s3_bucket.org_cloudtrail_vault.id
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.central_log_key.arn
+      sse_algorithm     = "aws:kms"
+    }
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "org_cloudtrail_bpa" {
@@ -721,4 +742,3 @@ resource "aws_securityhub_standards_subscription" "nist_800_53_r5" {
 
   depends_on = [aws_securityhub_organization_configuration.org_config]
 }
-
