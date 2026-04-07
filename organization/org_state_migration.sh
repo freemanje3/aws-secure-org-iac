@@ -65,3 +65,8 @@ terraform state rm aws_s3_bucket.org_conformance_pack_delivery || true
 terraform state rm aws_s3_bucket_server_side_encryption_configuration.org_conformance_pack_encryption || true
 terraform state rm aws_s3_bucket_public_access_block.conformance_pack_bpa || true
 terraform state rm aws_s3_bucket_policy.conformance_pack_policy || true
+
+# Heal broken state from synthetic Ghost Sweeper deregulation
+terraform state rm aws_guardduty_organization_configuration.gd_org_config || true
+terraform state rm aws_securityhub_organization_configuration.org_config || true
+terraform state rm aws_securityhub_standards_subscription.nist_800_53_r5 || true

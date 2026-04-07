@@ -1,23 +1,5 @@
 #!/bin/bash
-echo "=== Pre-Apply Ghost Cleanser Pipeline ==="
-
-echo "Sweeping Organizations global root for ghost GuardDuty Admins..."
-GD_ADMINS=$(aws organizations list-delegated-administrators --service-principal guardduty.amazonaws.com --query "DelegatedAdministrators[*].Id" --output text || echo "")
-for admin in $GD_ADMINS; do
-    if [ -n "$admin" ] && [ "$admin" != "None" ] && [ "$admin" != "null" ]; then
-        echo "Found ghost GD Admin at Root: $admin. Force deregistering..."
-        aws organizations deregister-delegated-administrator --account-id $admin --service-principal guardduty.amazonaws.com || true
-    fi
-done
-
-echo "Sweeping Organizations global root for ghost Security Hub Admins..."
-SH_ADMINS=$(aws organizations list-delegated-administrators --service-principal securityhub.amazonaws.com --query "DelegatedAdministrators[*].Id" --output text || echo "")
-for admin in $SH_ADMINS; do
-    if [ -n "$admin" ] && [ "$admin" != "None" ] && [ "$admin" != "null" ]; then
-        echo "Found ghost SH Admin at Root: $admin. Force deregistering..."
-        aws organizations deregister-delegated-administrator --account-id $admin --service-principal securityhub.amazonaws.com || true
-    fi
-done
+echo "=== Pre-Apply Pipeline Restored ==="
 
 # 1. Manually resolve S3 BPA deletion loops
 echo "Cleaning up S3 BPA loops..."
