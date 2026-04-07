@@ -409,40 +409,40 @@ module "security_tooling_baseline" {
 # 16. GuardDuty & Security Hub (Organization-Wide)
 ################################################################################
 
-# --- GuardDuty ---
+# # --- GuardDuty ---
 
-resource "aws_guardduty_organization_admin_account" "gd_admin" {
-  admin_account_id = aws_organizations_account.security_tooling.id
-}
+# resource "aws_guardduty_organization_admin_account" "gd_admin" {
+#   admin_account_id = aws_organizations_account.security_tooling.id
+# }
 
-resource "aws_guardduty_organization_configuration" "gd_org_config" {
-  provider                         = aws.security_tooling
-  auto_enable_organization_members = "ALL"
-  detector_id                      = module.security_tooling_baseline.detector_id
+# resource "aws_guardduty_organization_configuration" "gd_org_config" {
+#   provider                         = aws.security_tooling
+#   auto_enable_organization_members = "ALL"
+#   detector_id                      = module.security_tooling_baseline.detector_id
 
-  depends_on = [aws_guardduty_organization_admin_account.gd_admin]
-}
+#   depends_on = [aws_guardduty_organization_admin_account.gd_admin]
+# }
 
-# --- Security Hub ---
+# # --- Security Hub ---
 
-resource "aws_securityhub_account" "management" {}
+# resource "aws_securityhub_account" "management" {}
 
-resource "aws_securityhub_organization_admin_account" "org_admin" {
-  depends_on       = [aws_securityhub_account.management]
-  admin_account_id = aws_organizations_account.security_tooling.id
-}
+# resource "aws_securityhub_organization_admin_account" "org_admin" {
+#   depends_on       = [aws_securityhub_account.management]
+#   admin_account_id = aws_organizations_account.security_tooling.id
+# }
 
-resource "aws_securityhub_organization_configuration" "org_config" {
-  provider              = aws.security_tooling
-  auto_enable           = true
-  auto_enable_standards = "NONE"
+# resource "aws_securityhub_organization_configuration" "org_config" {
+#   provider              = aws.security_tooling
+#   auto_enable           = true
+#   auto_enable_standards = "NONE"
 
-  depends_on = [aws_securityhub_organization_admin_account.org_admin]
-}
+#   depends_on = [aws_securityhub_organization_admin_account.org_admin]
+# }
 
-resource "aws_securityhub_standards_subscription" "nist_800_53_r5" {
-  provider      = aws.security_tooling
-  standards_arn = "arn:aws:securityhub:us-east-1::standards/nist-800-53/v/5.0.0"
+# resource "aws_securityhub_standards_subscription" "nist_800_53_r5" {
+#   provider      = aws.security_tooling
+#   standards_arn = "arn:aws:securityhub:us-east-1::standards/nist-800-53/v/5.0.0"
 
-  depends_on = [aws_securityhub_organization_configuration.org_config]
-}
+#   depends_on = [aws_securityhub_organization_configuration.org_config]
+# }
