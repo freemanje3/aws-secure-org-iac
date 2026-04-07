@@ -39,39 +39,50 @@ if [ -n "$LOG_ARCHIVE_ID" ] && [ "$LOG_ARCHIVE_ID" != "None" ]; then
     fi
 fi
 
-# 3. Dynamically Import and Surgically Destroy Legacy Admins
+# 3. Aggressively Deregister Admins and Poll AWS API for Propagation Convergence
 SECURITY_TOOLING_ID=$(aws organizations list-accounts --query "Accounts[?Name=='Security-Tooling'].Id" --output text)
 
-echo "Fetching actively registered GuardDuty Admin..."
-GD_CURRENT_ADMIN=$(aws guardduty list-organization-admin-accounts --query "AdminAccounts[0].AdminAccountId" --output text || echo "")
-if [ "$GD_CURRENT_ADMIN" != "None" ] && [ -n "$GD_CURRENT_ADMIN" ] && [ "$GD_CURRENT_ADMIN" != "null" ]; then
-    if [ "$GD_CURRENT_ADMIN" == "$SECURITY_TOOLING_ID" ]; then
-        echo "GuardDuty Admin is perfectly set to Security Tooling! Importing state gracefully..."
-        terraform import aws_guardduty_organization_admin_account.gd_admin $GD_CURRENT_ADMIN || true
+echo "Deregistering GuardDuty Admins and waiting for propagation..."
+while true; do
+    GD_CHECK=$(aws guardduty list-organization-admin-accounts --query "AdminAccounts[0].AdminAccountId" --output text || echo "None")
+    
+    if [ "$GD_CHECK" == "None" ] || [ -z "$GD_CHECK" ] || [ "$GD_CHECK" == "null" ]; then
+        echo "[√] SUCCESS: GuardDuty Admin cache is cleared globally."
+        break
+    elif [ "$GD_CHECK" == "$SECURITY_TOOLING_ID" ]; then
+        echo "[√] SUCCESS: Security-Tooling is perfectly registered in GuardDuty! Importing..."
+        terraform import aws_guardduty_organization_admin_account.gd_admin $SECURITY_TOOLING_ID || true
+        break
     else
-        echo "Importing and sweeping legacy GuardDuty Admin: $GD_CURRENT_ADMIN"
-        terraform import aws_guardduty_organization_admin_account.gd_admin $GD_CURRENT_ADMIN || true
-        terraform destroy -target=aws_guardduty_organization_admin_account.gd_admin -auto-approve || true
+        echo "[-] AWS backend still reports $GD_CHECK active. Attempting explicit deregistration..."
+        aws guardduty disable-organization-admin-account --admin-account-id $GD_CHECK || true
+        echo "    Sleeping 20s for replication..."
+        sleep 20
     fi
-fi
+done
 
-echo "Fetching actively registered SecurityHub Admin..."
-SH_CURRENT_ADMIN=$(aws securityhub list-organization-admin-accounts --query "AdminAccounts[0].AccountId" --output text || echo "")
-if [ "$SH_CURRENT_ADMIN" != "None" ] && [ -n "$SH_CURRENT_ADMIN" ] && [ "$SH_CURRENT_ADMIN" != "null" ]; then
-    if [ "$SH_CURRENT_ADMIN" == "$SECURITY_TOOLING_ID" ]; then
-        echo "SecurityHub Admin is perfectly set to Security Tooling! Importing state gracefully..."
-        terraform import aws_securityhub_organization_admin_account.org_admin $SH_CURRENT_ADMIN || true
+echo "Deregistering Security Hub Admins and waiting for propagation..."
+while true; do
+    SH_CHECK=$(aws securityhub list-organization-admin-accounts --query "AdminAccounts[0].AccountId" --output text || echo "None")
+    
+    if [ "$SH_CHECK" == "None" ] || [ -z "$SH_CHECK" ] || [ "$SH_CHECK" == "null" ]; then
+        echo "[√] SUCCESS: Security Hub Admin cache is cleared globally."
+        break
+    elif [ "$SH_CHECK" == "$SECURITY_TOOLING_ID" ]; then
+        echo "[√] SUCCESS: Security-Tooling is perfectly registered in Security Hub! Importing..."
+        terraform import aws_securityhub_organization_admin_account.org_admin $SECURITY_TOOLING_ID || true
+        break
     else
-        echo "Importing and sweeping legacy SecurityHub Admin: $SH_CURRENT_ADMIN"
-        terraform import aws_securityhub_organization_admin_account.org_admin $SH_CURRENT_ADMIN || true
-        terraform destroy -target=aws_securityhub_organization_admin_account.org_admin -auto-approve || true
+        echo "[-] AWS backend still reports $SH_CHECK active. Attempting explicit deregistration..."
+        aws securityhub deregister-organization-admin-account --admin-account-id $SH_CHECK || true
+        echo "    Sleeping 20s for replication..."
+        sleep 20
     fi
-fi
+done
 
 # 4. KMS Policy Pipeline Race Condition Fix
 echo "Targeting KMS Policy explicitly before main execution..."
 terraform apply -target=aws_kms_key.central_log_key -auto-approve || true
-
-echo "Sleeping 45s for complete AWS global API convergence..."
-sleep 45
-echo "Ready for main deployment!"
+echo "Sleeping 20s for KMS replication..."
+sleep 20
+echo "=== Pre-Apply Fixes Core Loops Finished ==="
