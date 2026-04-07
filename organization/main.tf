@@ -69,7 +69,8 @@ resource "aws_organizations_organization" "org" {
     "cloudtrail.amazonaws.com",
     "config.amazonaws.com",
     "securityhub.amazonaws.com",
-    "guardduty.amazonaws.com"
+    "guardduty.amazonaws.com",
+    "inspector2.amazonaws.com"
   ]
 }
 
