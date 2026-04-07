@@ -70,3 +70,9 @@ terraform state rm aws_s3_bucket_policy.conformance_pack_policy || true
 terraform state rm aws_guardduty_organization_configuration.gd_org_config || true
 terraform state rm aws_securityhub_organization_configuration.org_config || true
 terraform state rm aws_securityhub_standards_subscription.nist_800_53_r5 || true
+
+# Heal broken state from AWS SSO eventual consistency bugs during renaming
+terraform state rm aws_ssoadmin_permission_set.admin_access || true
+terraform state rm aws_ssoadmin_managed_policy_attachment.admin_policy || true
+terraform state rm aws_ssoadmin_account_assignment.log_archive_admin || true
+terraform state rm aws_ssoadmin_account_assignment.security_tooling_admin || true
