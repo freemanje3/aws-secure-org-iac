@@ -149,6 +149,11 @@ resource "aws_iam_role_policy_attachment" "github_admin" {
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
 
+output "github_actions_role_arn" {
+  description = "The ARN of the IAM Role to use in GitHub Actions Secrets"
+  value       = aws_iam_role.github_actions.arn
+}
+
 # ==========================================
 # 5. Account Baselines (Management Account)
 # ==========================================
