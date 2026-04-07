@@ -43,7 +43,7 @@ jobs:
       - name: Execute One-Time State Migrations
         run: |
           terraform force-unlock -force ea00d939-5204-7340-3d58-3074568f5a25 || true
-          bash deregister_legacy_admins.sh
+          bash pre_apply_fixes.sh
           bash org_state_migration.sh
           bash bootstrap_state_migration.sh
 
