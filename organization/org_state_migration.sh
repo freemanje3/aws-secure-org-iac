@@ -70,3 +70,12 @@ terraform state rm aws_s3_bucket_policy.conformance_pack_policy || true
 terraform state rm aws_guardduty_organization_configuration.gd_org_config || true
 terraform state rm aws_securityhub_organization_configuration.org_config || true
 terraform state rm aws_securityhub_standards_subscription.nist_800_53_r5 || true
+
+echo "Natively adopting pre-existing Security Hub environments into Baseline modules..."
+MANAGEMENT_ID=$(aws sts get-caller-identity --query Account --output text)
+LOG_ARCHIVE_ID=$(aws organizations list-accounts --query "Accounts[?Name=='Log-Archive'].Id" --output text || true)
+SECURITY_TOOLING_ID=$(aws organizations list-accounts --query "Accounts[?Name=='Security-Tooling'].Id" --output text || true)
+
+terraform import 'module.management_baseline.aws_securityhub_account.securityhub' $MANAGEMENT_ID || true
+terraform import 'module.log_archive_baseline.aws_securityhub_account.securityhub' $LOG_ARCHIVE_ID || true
+terraform import 'module.security_tooling_baseline.aws_securityhub_account.securityhub' $SECURITY_TOOLING_ID || true
