@@ -60,3 +60,8 @@ terraform state mv aws_cloudwatch_event_target.log_archive_guardduty_target 'mod
 terraform state mv aws_s3_account_public_access_block.security_tooling 'module.security_tooling_baseline.aws_s3_account_public_access_block.baseline' || true
 terraform state mv aws_ebs_encryption_by_default.security_tooling 'module.security_tooling_baseline.aws_ebs_encryption_by_default.baseline' || true
 
+# Orphan Legacy Conformance Pack S3 Bucket
+terraform state rm aws_s3_bucket.org_conformance_pack_delivery || true
+terraform state rm aws_s3_bucket_server_side_encryption_configuration.org_conformance_pack_encryption || true
+terraform state rm aws_s3_bucket_public_access_block.conformance_pack_bpa || true
+terraform state rm aws_s3_bucket_policy.conformance_pack_policy || true

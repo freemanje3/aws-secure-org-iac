@@ -109,36 +109,21 @@ resource "aws_config_organization_managed_rule" "central_log_key_check" {
   ]
 }
 
-resource "aws_config_organization_conformance_pack" "nist_800_53" {
-  name               = "NIST-800-53-Rev5-Operational-Best-Practices"
-  template_body      = file("${path.module}/nist-800-53-rev-5.yaml")
-  delivery_s3_bucket = aws_s3_bucket.org_conformance_pack_delivery.bucket
-
-  # Waits for bucket policy and recorders to exist before deploying the pack
-  depends_on = [
-    aws_organizations_organization.org,
-    aws_s3_bucket_policy.conformance_pack_policy,
-    module.management_baseline,
-    module.log_archive_baseline
-  ]
-}
-
 ################################################################################
-# 9. Conformance Pack Delivery Bucket (Log Archive Account)
+# 9. Central Configuration Delivery Vault (Log Archive Account)
 ################################################################################
 
-resource "aws_s3_bucket" "org_conformance_pack_delivery" {
+resource "aws_s3_bucket" "aws_config_delivery_vault" {
   provider = aws.log_archive
 
-  # AWS strictly requires the 'awsconfigconforms' prefix for this specific bucket
-  bucket = "awsconfigconforms-org-delivery-${aws_organizations_account.log_archive.id}"
+  bucket = "aws-config-delivery-vault-${aws_organizations_account.log_archive.id}"
 
   force_destroy = false
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "org_conformance_pack_encryption" {
+resource "aws_s3_bucket_server_side_encryption_configuration" "aws_config_vault_encryption" {
   provider = aws.log_archive
-  bucket   = aws_s3_bucket.org_conformance_pack_delivery.id
+  bucket   = aws_s3_bucket.aws_config_delivery_vault.id
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm = "AES256"
@@ -146,22 +131,22 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "org_conformance_p
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "conformance_pack_bpa" {
+resource "aws_s3_bucket_public_access_block" "aws_config_vault_bpa" {
   provider                = aws.log_archive
-  bucket                  = aws_s3_bucket.org_conformance_pack_delivery.id
+  bucket                  = aws_s3_bucket.aws_config_delivery_vault.id
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
 }
 
-resource "aws_s3_bucket_policy" "conformance_pack_policy" {
+resource "aws_s3_bucket_policy" "aws_config_vault_policy" {
   provider = aws.log_archive
-  bucket   = aws_s3_bucket.org_conformance_pack_delivery.id
-  policy   = data.aws_iam_policy_document.conformance_pack_bucket_policy.json
+  bucket   = aws_s3_bucket.aws_config_delivery_vault.id
+  policy   = data.aws_iam_policy_document.aws_config_vault_bucket_policy.json
 }
 
-data "aws_iam_policy_document" "conformance_pack_bucket_policy" {
+data "aws_iam_policy_document" "aws_config_vault_bucket_policy" {
   provider = aws.log_archive
 
   # 1. Allow AWS Config Service Principal (Required for Delivery Channel pre-flight checks)
@@ -173,7 +158,7 @@ data "aws_iam_policy_document" "conformance_pack_bucket_policy" {
       identifiers = ["config.amazonaws.com"]
     }
     actions   = ["s3:GetBucketAcl", "s3:ListBucket"]
-    resources = [aws_s3_bucket.org_conformance_pack_delivery.arn]
+    resources = [aws_s3_bucket.aws_config_delivery_vault.arn]
   }
 
   statement {
@@ -184,7 +169,7 @@ data "aws_iam_policy_document" "conformance_pack_bucket_policy" {
       identifiers = ["config.amazonaws.com"]
     }
     actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.org_conformance_pack_delivery.arn}/*"]
+    resources = ["${aws_s3_bucket.aws_config_delivery_vault.arn}/*"]
     condition {
       test     = "StringEquals"
       variable = "s3:x-amz-acl"
@@ -192,7 +177,7 @@ data "aws_iam_policy_document" "conformance_pack_bucket_policy" {
     }
   }
 
-  # 2. Allow Cross-Account Organization Access (Required for Conformance Packs)
+  # 2. Allow Cross-Account Organization Access (Required for Member Delivery Channels)
   statement {
     sid    = "AllowOrganizationAclCheck"
     effect = "Allow"
@@ -201,7 +186,7 @@ data "aws_iam_policy_document" "conformance_pack_bucket_policy" {
       identifiers = ["*"]
     }
     actions   = ["s3:GetBucketAcl"]
-    resources = [aws_s3_bucket.org_conformance_pack_delivery.arn]
+    resources = [aws_s3_bucket.aws_config_delivery_vault.arn]
 
     condition {
       test     = "StringEquals"
@@ -218,7 +203,7 @@ data "aws_iam_policy_document" "conformance_pack_bucket_policy" {
       identifiers = ["*"]
     }
     actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.org_conformance_pack_delivery.arn}/*"]
+    resources = ["${aws_s3_bucket.aws_config_delivery_vault.arn}/*"]
 
     condition {
       test     = "StringEquals"
@@ -377,7 +362,7 @@ module "management_baseline" {
   account_name_prefix        = "management"
   vpc_cidr                   = "10.0.0.0/16"
   isolated_subnet_cidr       = "10.0.1.0/24"
-  central_config_bucket_name = aws_s3_bucket.org_conformance_pack_delivery.bucket
+  central_config_bucket_name = aws_s3_bucket.aws_config_delivery_vault.bucket
   central_log_key_arn        = aws_kms_key.central_log_key.arn
 }
 
@@ -389,7 +374,7 @@ module "log_archive_baseline" {
   account_name_prefix        = "log-archive"
   vpc_cidr                   = "10.1.0.0/16"
   isolated_subnet_cidr       = "10.1.1.0/24"
-  central_config_bucket_name = aws_s3_bucket.org_conformance_pack_delivery.bucket
+  central_config_bucket_name = aws_s3_bucket.aws_config_delivery_vault.bucket
   central_log_key_arn        = aws_kms_key.central_log_key.arn
 }
 
@@ -401,7 +386,7 @@ module "security_tooling_baseline" {
   account_name_prefix        = "security-tooling"
   vpc_cidr                   = "10.2.0.0/16"
   isolated_subnet_cidr       = "10.2.1.0/24"
-  central_config_bucket_name = aws_s3_bucket.org_conformance_pack_delivery.bucket
+  central_config_bucket_name = aws_s3_bucket.aws_config_delivery_vault.bucket
   central_log_key_arn        = aws_kms_key.central_log_key.arn
 }
 
@@ -409,40 +394,40 @@ module "security_tooling_baseline" {
 # 16. GuardDuty & Security Hub (Organization-Wide)
 ################################################################################
 
-# # --- GuardDuty ---
+# --- GuardDuty ---
 
-# resource "aws_guardduty_organization_admin_account" "gd_admin" {
-#   admin_account_id = aws_organizations_account.security_tooling.id
-# }
+resource "aws_guardduty_organization_admin_account" "gd_admin" {
+  admin_account_id = aws_organizations_account.security_tooling.id
+}
 
-# resource "aws_guardduty_organization_configuration" "gd_org_config" {
-#   provider                         = aws.security_tooling
-#   auto_enable_organization_members = "ALL"
-#   detector_id                      = module.security_tooling_baseline.detector_id
+resource "aws_guardduty_organization_configuration" "gd_org_config" {
+  provider                         = aws.security_tooling
+  auto_enable_organization_members = "ALL"
+  detector_id                      = module.security_tooling_baseline.detector_id
 
-#   depends_on = [aws_guardduty_organization_admin_account.gd_admin]
-# }
+  depends_on = [aws_guardduty_organization_admin_account.gd_admin]
+}
 
-# # --- Security Hub ---
+# --- Security Hub ---
 
-# resource "aws_securityhub_account" "management" {}
+resource "aws_securityhub_account" "management" {}
 
-# resource "aws_securityhub_organization_admin_account" "org_admin" {
-#   depends_on       = [aws_securityhub_account.management]
-#   admin_account_id = aws_organizations_account.security_tooling.id
-# }
+resource "aws_securityhub_organization_admin_account" "org_admin" {
+  depends_on       = [aws_securityhub_account.management]
+  admin_account_id = aws_organizations_account.security_tooling.id
+}
 
-# resource "aws_securityhub_organization_configuration" "org_config" {
-#   provider              = aws.security_tooling
-#   auto_enable           = true
-#   auto_enable_standards = "NONE"
+resource "aws_securityhub_organization_configuration" "org_config" {
+  provider              = aws.security_tooling
+  auto_enable           = true
+  auto_enable_standards = "NONE"
 
-#   depends_on = [aws_securityhub_organization_admin_account.org_admin]
-# }
+  depends_on = [aws_securityhub_organization_admin_account.org_admin]
+}
 
-# resource "aws_securityhub_standards_subscription" "nist_800_53_r5" {
-#   provider      = aws.security_tooling
-#   standards_arn = "arn:aws:securityhub:us-east-1::standards/nist-800-53/v/5.0.0"
+resource "aws_securityhub_standards_subscription" "nist_800_53_r5" {
+  provider      = aws.security_tooling
+  standards_arn = "arn:aws:securityhub:us-east-1::standards/nist-800-53/v/5.0.0"
 
-#   depends_on = [aws_securityhub_organization_configuration.org_config]
-# }
+  depends_on = [aws_securityhub_organization_configuration.org_config]
+}
