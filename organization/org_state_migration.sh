@@ -55,3 +55,8 @@ terraform state mv aws_cloudwatch_log_group.log_archive_guardduty_logs 'module.l
 terraform state mv aws_cloudwatch_log_resource_policy.log_archive_events_to_cwl 'module.log_archive_baseline.aws_cloudwatch_log_resource_policy.events_to_cwl' || true
 terraform state mv aws_cloudwatch_event_rule.log_archive_guardduty_rule 'module.log_archive_baseline.aws_cloudwatch_event_rule.guardduty_rule' || true
 terraform state mv aws_cloudwatch_event_target.log_archive_guardduty_target 'module.log_archive_baseline.aws_cloudwatch_event_target.guardduty_target' || true
+
+# Security Tooling Defaults
+terraform state mv aws_s3_account_public_access_block.security_tooling 'module.security_tooling_baseline.aws_s3_account_public_access_block.baseline' || true
+terraform state mv aws_ebs_encryption_by_default.security_tooling 'module.security_tooling_baseline.aws_ebs_encryption_by_default.baseline' || true
+

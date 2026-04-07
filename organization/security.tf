@@ -59,7 +59,8 @@ data "aws_iam_policy_document" "central_log_key_policy" {
       variable = "kms:EncryptionContext:aws:logs:arn"
       values = [
         "arn:aws:logs:us-east-1:${data.aws_caller_identity.current.account_id}:*",
-        "arn:aws:logs:us-east-1:${aws_organizations_account.log_archive.id}:*"
+        "arn:aws:logs:us-east-1:${aws_organizations_account.log_archive.id}:*",
+        "arn:aws:logs:us-east-1:${aws_organizations_account.security_tooling.id}:*"
       ]
     }
   }
