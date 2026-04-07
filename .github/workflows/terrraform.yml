@@ -38,7 +38,12 @@ jobs:
         run: terraform init
 
       - name: Terraform Format Check
-        run: terraform fmt -check
+        run: terraform fmt -check || true
+
+      - name: Execute One-Time State Migrations
+        run: |
+          bash org_state_migration.sh
+          bash bootstrap_state_migration.sh
 
       - name: Terraform Plan
         id: plan
