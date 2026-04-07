@@ -45,7 +45,10 @@ SECURITY_TOOLING_ID=$(aws organizations list-accounts --query "Accounts[?Name=='
 echo "Fetching actively registered GuardDuty Admin..."
 GD_CURRENT_ADMIN=$(aws guardduty list-organization-admin-accounts --query "AdminAccounts[0].AdminAccountId" --output text || echo "")
 if [ "$GD_CURRENT_ADMIN" != "None" ] && [ -n "$GD_CURRENT_ADMIN" ] && [ "$GD_CURRENT_ADMIN" != "null" ]; then
-    if [ "$GD_CURRENT_ADMIN" != "$SECURITY_TOOLING_ID" ]; then
+    if [ "$GD_CURRENT_ADMIN" == "$SECURITY_TOOLING_ID" ]; then
+        echo "GuardDuty Admin is perfectly set to Security Tooling! Importing state gracefully..."
+        terraform import aws_guardduty_organization_admin_account.gd_admin $GD_CURRENT_ADMIN || true
+    else
         echo "Importing and sweeping legacy GuardDuty Admin: $GD_CURRENT_ADMIN"
         terraform import aws_guardduty_organization_admin_account.gd_admin $GD_CURRENT_ADMIN || true
         terraform destroy -target=aws_guardduty_organization_admin_account.gd_admin -auto-approve || true
@@ -55,7 +58,10 @@ fi
 echo "Fetching actively registered SecurityHub Admin..."
 SH_CURRENT_ADMIN=$(aws securityhub list-organization-admin-accounts --query "AdminAccounts[0].AccountId" --output text || echo "")
 if [ "$SH_CURRENT_ADMIN" != "None" ] && [ -n "$SH_CURRENT_ADMIN" ] && [ "$SH_CURRENT_ADMIN" != "null" ]; then
-    if [ "$SH_CURRENT_ADMIN" != "$SECURITY_TOOLING_ID" ]; then
+    if [ "$SH_CURRENT_ADMIN" == "$SECURITY_TOOLING_ID" ]; then
+        echo "SecurityHub Admin is perfectly set to Security Tooling! Importing state gracefully..."
+        terraform import aws_securityhub_organization_admin_account.org_admin $SH_CURRENT_ADMIN || true
+    else
         echo "Importing and sweeping legacy SecurityHub Admin: $SH_CURRENT_ADMIN"
         terraform import aws_securityhub_organization_admin_account.org_admin $SH_CURRENT_ADMIN || true
         terraform destroy -target=aws_securityhub_organization_admin_account.org_admin -auto-approve || true
