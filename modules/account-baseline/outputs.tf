@@ -1,4 +1,4 @@
 output "detector_id" {
   description = "The ID of the GuardDuty detector"
-  value       = aws_guardduty_detector.detector.id
+  value       = var.manage_guardduty ? aws_guardduty_detector.detector[0].id : ""
 }

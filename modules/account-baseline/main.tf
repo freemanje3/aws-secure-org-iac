@@ -172,6 +172,7 @@ resource "aws_flow_log" "vpc_flow_log" {
 # -------------------------------------------------------------
 
 resource "aws_guardduty_detector" "detector" {
+  count  = var.manage_guardduty ? 1 : 0
   enable = true
 }
 
@@ -212,17 +213,6 @@ resource "aws_cloudwatch_event_target" "guardduty_target" {
 # 6. Security Hub & Compliance Standards
 # -------------------------------------------------------------
 
-resource "aws_securityhub_account" "securityhub" {
-  lifecycle {
-    ignore_changes = [
-      enable_default_standards,
-      control_finding_generator,
-      auto_enable_controls,
-    ]
-  }
-}
-
 resource "aws_securityhub_standards_subscription" "nist_800_53_r5" {
-  depends_on    = [aws_securityhub_account.securityhub]
   standards_arn = "arn:aws:securityhub:us-east-1::standards/nist-800-53/v/5.0.0"
 }

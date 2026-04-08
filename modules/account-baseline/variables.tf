@@ -14,8 +14,14 @@ variable "isolated_subnet_cidr" {
 }
 
 variable "central_config_bucket_name" {
+  description = "Name of the central S3 bucket in the Log Archive account for AWS Config delivery"
   type        = string
-  description = "Name of the central S3 bucket for AWS Config Delivery (located in Log Archive)"
+}
+
+variable "manage_guardduty" {
+  description = "Should Terraform explicitly manage the GuardDuty detector? (set false if Auto-Enabled by Organization)"
+  type        = bool
+  default     = false
 }
 
 variable "central_log_key_arn" {

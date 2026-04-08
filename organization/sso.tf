@@ -47,3 +47,48 @@ resource "aws_ssoadmin_account_assignment" "security_tooling_admin" {
   principal_type     = "USER"
   permission_set_arn = aws_ssoadmin_permission_set.admin_access.arn
 }
+
+resource "aws_ssoadmin_account_assignment" "routing_admin" {
+  instance_arn       = tolist(data.aws_ssoadmin_instances.main.arns)[0]
+  target_id          = aws_organizations_account.routing.id
+  target_type        = "AWS_ACCOUNT"
+  principal_id       = data.aws_identitystore_user.admin_user.user_id
+  principal_type     = "USER"
+  permission_set_arn = aws_ssoadmin_permission_set.admin_access.arn
+}
+
+resource "aws_ssoadmin_account_assignment" "shared_services_admin" {
+  instance_arn       = tolist(data.aws_ssoadmin_instances.main.arns)[0]
+  target_id          = aws_organizations_account.shared_services.id
+  target_type        = "AWS_ACCOUNT"
+  principal_id       = data.aws_identitystore_user.admin_user.user_id
+  principal_type     = "USER"
+  permission_set_arn = aws_ssoadmin_permission_set.admin_access.arn
+}
+
+resource "aws_ssoadmin_account_assignment" "development_admin" {
+  instance_arn       = tolist(data.aws_ssoadmin_instances.main.arns)[0]
+  target_id          = aws_organizations_account.development.id
+  target_type        = "AWS_ACCOUNT"
+  principal_id       = data.aws_identitystore_user.admin_user.user_id
+  principal_type     = "USER"
+  permission_set_arn = aws_ssoadmin_permission_set.admin_access.arn
+}
+
+resource "aws_ssoadmin_account_assignment" "production_admin" {
+  instance_arn       = tolist(data.aws_ssoadmin_instances.main.arns)[0]
+  target_id          = aws_organizations_account.production.id
+  target_type        = "AWS_ACCOUNT"
+  principal_id       = data.aws_identitystore_user.admin_user.user_id
+  principal_type     = "USER"
+  permission_set_arn = aws_ssoadmin_permission_set.admin_access.arn
+}
+
+resource "aws_ssoadmin_account_assignment" "data_ingestion_admin" {
+  instance_arn       = tolist(data.aws_ssoadmin_instances.main.arns)[0]
+  target_id          = aws_organizations_account.data_ingestion.id
+  target_type        = "AWS_ACCOUNT"
+  principal_id       = data.aws_identitystore_user.admin_user.user_id
+  principal_type     = "USER"
+  permission_set_arn = aws_ssoadmin_permission_set.admin_access.arn
+}

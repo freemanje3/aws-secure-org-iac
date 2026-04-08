@@ -388,6 +388,7 @@ module "security_tooling_baseline" {
   isolated_subnet_cidr       = "10.2.1.0/24"
   central_config_bucket_name = aws_s3_bucket.aws_config_delivery_vault.bucket
   central_log_key_arn        = aws_kms_key.central_log_key.arn
+  manage_guardduty           = true
 }
 
 ################################################################################

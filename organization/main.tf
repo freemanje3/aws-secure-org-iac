@@ -49,6 +49,51 @@ provider "aws" {
   }
 }
 
+# Aliased Provider: Routing
+provider "aws" {
+  alias  = "routing"
+  region = "us-east-1"
+  assume_role {
+    role_arn = "arn:aws:iam::${aws_organizations_account.routing.id}:role/OrganizationAccountAccessRole"
+  }
+}
+
+# Aliased Provider: Shared Services
+provider "aws" {
+  alias  = "shared_services"
+  region = "us-east-1"
+  assume_role {
+    role_arn = "arn:aws:iam::${aws_organizations_account.shared_services.id}:role/OrganizationAccountAccessRole"
+  }
+}
+
+# Aliased Provider: Development
+provider "aws" {
+  alias  = "development"
+  region = "us-east-1"
+  assume_role {
+    role_arn = "arn:aws:iam::${aws_organizations_account.development.id}:role/OrganizationAccountAccessRole"
+  }
+}
+
+# Aliased Provider: Production
+provider "aws" {
+  alias  = "production"
+  region = "us-east-1"
+  assume_role {
+    role_arn = "arn:aws:iam::${aws_organizations_account.production.id}:role/OrganizationAccountAccessRole"
+  }
+}
+
+# Aliased Provider: Data Ingestion
+provider "aws" {
+  alias  = "data_ingestion"
+  region = "us-east-1"
+  assume_role {
+    role_arn = "arn:aws:iam::${aws_organizations_account.data_ingestion.id}:role/OrganizationAccountAccessRole"
+  }
+}
+
 # Required to dynamically fetch the Management Account ID for policies
 data "aws_caller_identity" "current" {}
 
@@ -86,5 +131,10 @@ resource "aws_organizations_organizational_unit" "infrastructure" {
 
 resource "aws_organizations_organizational_unit" "sandbox" {
   name      = "Sandbox"
+  parent_id = aws_organizations_organization.org.roots[0].id
+}
+
+resource "aws_organizations_organizational_unit" "workloads" {
+  name      = "Workloads"
   parent_id = aws_organizations_organization.org.roots[0].id
 }
