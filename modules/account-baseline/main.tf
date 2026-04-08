@@ -212,7 +212,15 @@ resource "aws_cloudwatch_event_target" "guardduty_target" {
 # 6. Security Hub & Compliance Standards
 # -------------------------------------------------------------
 
-resource "aws_securityhub_account" "securityhub" {}
+resource "aws_securityhub_account" "securityhub" {
+  lifecycle {
+    ignore_changes = [
+      enable_default_standards,
+      control_finding_generator,
+      auto_enable_controls,
+    ]
+  }
+}
 
 resource "aws_securityhub_standards_subscription" "nist_800_53_r5" {
   depends_on    = [aws_securityhub_account.securityhub]
